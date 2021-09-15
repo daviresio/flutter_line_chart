@@ -1,16 +1,13 @@
-# flutter_line_chart
+# Flutter line chart
 
-A new Flutter project.
+See live demo on <a href="https://flutter-line-chart.daviresio.com" target="_blank">this link</a>
 
-## Getting Started
+Project using custom paint for draw a line chart, this is a example of content displayed on youtube video and article. you can see then on liks bellow
 
-This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+![](screenshot.png)
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## contact
+daviresio@gmail.com
+<br><br>
+https://www.linkedin.com/in/davi-resio-4ba0b9136/
