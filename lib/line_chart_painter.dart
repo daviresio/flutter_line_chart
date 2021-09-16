@@ -153,6 +153,11 @@ class LineChartPainter extends CustomPainter {
     });
 
     drawTooltip(canvas, points[higherValueIndex], higherValue.toString());
+
+    // final rectpailt = Paint()
+    //   ..color = Colors.redAccent.withOpacity(0.5)
+    //   ..style = PaintingStyle.fill;
+    // canvas.drawRect(Rect.fromLTRB(0, 0, size.width, size.height), rectpailt);
   }
 
   drawTooltip(Canvas canvas, Offset offset, String text) {
