@@ -9,5 +9,3 @@ Project using custom paint for draw a line chart, this is a example of content d
 
 ## contact
 daviresio@gmail.com
-<br><br>
-https://www.linkedin.com/in/davi-resio-4ba0b9136/
