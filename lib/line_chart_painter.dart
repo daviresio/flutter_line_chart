@@ -16,8 +16,20 @@ class ChartDataModel {
 
 class LineChartPainter extends CustomPainter {
   final List<ChartDataModel> chartData;
+  final Animation<double> animation;
+  final Animation<double> firstAnimation;
+  final Animation<double> secondAnimation;
+  final Animation<double> thirdAnimation;
+  final Animation<double> fourthAnimation;
 
-  const LineChartPainter({required this.chartData});
+  const LineChartPainter({
+    required this.chartData,
+    required this.animation,
+    required this.firstAnimation,
+    required this.secondAnimation,
+    required this.thirdAnimation,
+    required this.fourthAnimation,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -32,19 +44,6 @@ class LineChartPainter extends CustomPainter {
       ..color = Color(0xff5273EC)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
-
-    final gradientPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color.fromRGBO(234, 238, 255, 1),
-          Color.fromRGBO(234, 238, 255, 0),
-        ],
-      ).createShader(Rect.fromCenter(
-          height: size.height,
-          width: 0,
-          center: Offset(size.width / 2, size.height / 2)));
 
     final linePath = Path();
 
@@ -78,53 +77,42 @@ class LineChartPainter extends CustomPainter {
       }
     }
 
-    final gradientPath = Path.from(linePath);
+    _drawGradient(
+      canvas: canvas,
+      animation: firstAnimation,
+      linePath: linePath,
+      points: points,
+      size: size,
+      endY: size.height,
+    );
 
-    // close area path
-    gradientPath.lineTo(points.last.dx, size.height);
-    gradientPath.lineTo(points.first.dx, size.height);
-    gradientPath.lineTo(points.first.dx, points.first.dy);
+    final metrics = linePath.computeMetrics().toList();
+    final metric = metrics.first;
 
-    //Draw the gradient
-    canvas.drawPath(gradientPath, gradientPaint);
+    final drawLimit = util.remap(firstAnimation.value, 0, 1, 0, metric.length);
 
-    final outerCirclePainter = Paint()
-      ..style = PaintingStyle.fill
-      ..color = Color(0xffD6DFFE);
+    var currentContourn = 0.0;
+    final parcialPath = Path();
 
-    final innerCirclePainter = Paint()
-      ..style = PaintingStyle.fill
-      ..color = Colors.white;
-
-    //Draw outer circle
-    canvas.drawCircle(points[higherValueIndex], 10.0, outerCirclePainter);
-
-    //Draw line chart
-    canvas.drawPath(linePath, linePaint);
-
-    //Draw inner white circle
-    canvas.drawCircle(points[higherValueIndex], 3.0, innerCirclePainter);
-    // Draw middle circle
-    canvas.drawCircle(points[higherValueIndex], 4.0, linePaint);
-
-    //Size and spacing of vertical indicator line
-    const dashHeight = 6.0;
-    const dashSpace = 6.0;
-
-    var fromPositionY = points[higherValueIndex].dy + 4;
-    //Begin on most higher value and when not is on bottom, draw lines
-    while (size.height > fromPositionY) {
-      final toPositionY = (size.height - fromPositionY) < dashHeight
-          ? (fromPositionY + (size.height - fromPositionY))
-          : fromPositionY + dashHeight;
-
-      canvas.drawLine(
-        Offset(points[higherValueIndex].dx, fromPositionY),
-        Offset(points[higherValueIndex].dx, toPositionY),
-        linePaint,
-      );
-      fromPositionY += dashHeight + dashSpace;
+    while (currentContourn < drawLimit) {
+      final contourn = metric.getTangentForOffset(currentContourn)!;
+      if (currentContourn == 0) {
+        parcialPath.moveTo(contourn.position.dx, contourn.position.dy);
+      } else {
+        parcialPath.lineTo(contourn.position.dx, contourn.position.dy);
+      }
+      currentContourn += 1;
     }
+
+    canvas.drawPath(parcialPath, linePaint);
+
+    _drawCircle(
+      canvas: canvas,
+      size: size,
+      offset: points[higherValueIndex],
+      animation: thirdAnimation,
+      linePaint: linePaint,
+    );
 
     final textStyle = TextStyle(
       color: Colors.black38,
@@ -152,19 +140,150 @@ class LineChartPainter extends CustomPainter {
           canvas, Offset(offset.dx - textPainter.width / 2, size.height));
     });
 
-    drawTooltip(canvas, points[higherValueIndex], higherValue.toString());
-
-    // final rectpailt = Paint()
-    //   ..color = Colors.redAccent.withOpacity(0.5)
-    //   ..style = PaintingStyle.fill;
-    // canvas.drawRect(Rect.fromLTRB(0, 0, size.width, size.height), rectpailt);
+    drawTooltip(
+      canvas: canvas,
+      offset: points[higherValueIndex],
+      text: higherValue.toString(),
+      animation: fourthAnimation,
+    );
   }
 
-  drawTooltip(Canvas canvas, Offset offset, String text) {
+  void _drawGradient({
+    required Canvas canvas,
+    required Size size,
+    required double endY,
+    required Path linePath,
+    required List<Offset> points,
+    required Animation<double> animation,
+  }) {
+    final gradientPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Color.fromRGBO(234, 238, 255, 1),
+          Color.fromRGBO(234, 238, 255, 0),
+        ],
+      ).createShader(Rect.fromCenter(
+          height: size.height,
+          width: 0,
+          center: Offset(size.width / 2, size.height / 2)));
+
+    final gradientPath = Path.from(linePath);
+
+    // close area path
+    gradientPath.lineTo(points.last.dx, size.height);
+    gradientPath.lineTo(points.first.dx, size.height);
+    gradientPath.lineTo(points.first.dx, points.first.dy);
+
+    final bounds = gradientPath.getBounds();
+    final matrix4 = Matrix4(
+      1, 0, 0, 0, //
+      0, util.remap(animation.value, 0, 1, 0, 1), 0, 0, //
+      0, 0, 1, 0, //
+      0, util.remap(animation.value, 0, 1, bounds.bottom, 0), 0,
+      1, //
+    );
+
+    //Draw the gradient
+    canvas.drawPath(gradientPath.transform(matrix4.storage), gradientPaint);
+  }
+
+  void _drawCircle({
+    required Canvas canvas,
+    required Size size,
+    required Offset offset,
+    required Animation<double> animation,
+    required Paint linePaint,
+  }) {
+    final outerCirclePainter = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Color(0xffD6DFFE);
+
+    final innerCirclePainter = Paint()
+      ..style = PaintingStyle.fill
+      ..color = Colors.white;
+
+    final matrixScale = Matrix4.identity();
+    matrixScale.translate(util.remap(animation.value, 0, 1, offset.dx, 0),
+        util.remap(animation.value, 0, 1, offset.dy, 0));
+    matrixScale.scale(animation.value, animation.value);
+
+    final bigCirclePath = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromCircle(center: offset, radius: 10), Radius.circular(10)));
+
+    final smallCirclePath = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromCircle(center: offset, radius: 3), Radius.circular(3)));
+
+    final mediumCirclePath = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+          Rect.fromCircle(center: offset, radius: 4), Radius.circular(4)));
+
+    canvas.drawPath(
+      bigCirclePath.transform(matrixScale.storage),
+      outerCirclePainter,
+    );
+
+    canvas.drawPath(
+      smallCirclePath.transform(matrixScale.storage),
+      innerCirclePainter,
+    );
+
+    canvas.drawPath(
+      mediumCirclePath.transform(matrixScale.storage),
+      linePaint,
+    );
+
+    final path = _verticalDashedLine(
+      dashHeight: 6,
+      dashSpace: 6,
+      dx: offset.dx,
+      startY:
+          util.remap(secondAnimation.value, 0, 1, size.height, offset.dy + 4),
+      endY: size.height,
+    );
+
+    canvas.drawPath(path, linePaint);
+  }
+
+  Path _verticalDashedLine({
+    required double dashHeight,
+    required double dashSpace,
+    required double startY,
+    required double endY,
+    required double dx,
+  }) {
+    final path = Path();
+    var positionY = startY;
+    while (endY > positionY) {
+      if ((endY - positionY) < dashHeight) {
+        path.moveTo(dx, positionY);
+        path.lineTo(dx, positionY + (endY - positionY));
+      } else {
+        path.moveTo(dx, positionY);
+        path.lineTo(dx, positionY + dashHeight);
+      }
+      positionY += dashHeight + (dashSpace + 1);
+    }
+
+    return path;
+  }
+
+  drawTooltip({
+    required Canvas canvas,
+    required Offset offset,
+    required String text,
+    required Animation<double> animation,
+  }) {
     final textSpan = TextSpan(
       text: '\$$text',
       style: TextStyle(
-          color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12.0),
+        color: Colors.white.withOpacity(animation.value),
+        fontWeight: FontWeight.bold,
+        fontSize: 12.0,
+      ),
     );
 
     final textPainter = TextPainter(
@@ -175,13 +294,16 @@ class LineChartPainter extends CustomPainter {
     textPainter.layout();
 
     final rectPaint = Paint()
-      ..color = Color(0xff414D62)
+      ..color = Color(0xff414D62).withOpacity(animation.value)
       ..style = PaintingStyle.fill;
 
+    const translateX = 15.0;
+    final translatedX = util.remap(animation.value, 0, 1, 0, translateX);
+
     final rect = RRect.fromLTRBR(
-      offset.dx - textPainter.width - 15 - 24,
+      offset.dx - textPainter.width - translatedX - 24,
       offset.dy - 10,
-      offset.dx - 15,
+      offset.dx - translatedX,
       offset.dy + 10,
       Radius.circular(4.0),
     );
@@ -189,9 +311,10 @@ class LineChartPainter extends CustomPainter {
     canvas.drawRRect(rect, rectPaint);
 
     textPainter.paint(
-        canvas,
-        Offset(offset.dx - textPainter.width - 15 - 12,
-            offset.dy - textPainter.height / 2));
+      canvas,
+      Offset(offset.dx - textPainter.width - translatedX - 12,
+          offset.dy - textPainter.height / 2),
+    );
   }
 
   drawHorizontalLines(Canvas canvas, Size size) {
