@@ -35,6 +35,8 @@ class _HomePageState extends State<HomePage>
   late final Animation<double> _thirdAnimation;
   late final Animation<double> _fourthAnimation;
 
+  double? positionX;
+
   @override
   void initState() {
     super.initState();
@@ -88,21 +90,32 @@ class _HomePageState extends State<HomePage>
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: AnimatedBuilder(
-          animation: _animationController,
-          builder: (_, __) {
-            return CustomPaint(
-              size: Size(MediaQuery.of(context).size.width - 60, 200),
-              painter: LineChartPainter(
-                chartData: chartData,
-                animation: _animation,
-                firstAnimation: _firstAnimation,
-                secondAnimation: _secondAnimation,
-                thirdAnimation: _thirdAnimation,
-                fourthAnimation: _fourthAnimation,
-              ),
-            );
-          },
+        child: SizedBox(
+          width: MediaQuery.of(context).size.width - 60,
+          height: 200,
+          child: GestureDetector(
+            onPanUpdate: (details) {
+              setState(() {
+                positionX = details.localPosition.dx;
+              });
+            },
+            child: AnimatedBuilder(
+              animation: _animationController,
+              builder: (_, __) {
+                return CustomPaint(
+                  painter: LineChartPainter(
+                    chartData: chartData,
+                    cursorPosition: positionX,
+                    animation: _animation,
+                    firstAnimation: _firstAnimation,
+                    secondAnimation: _secondAnimation,
+                    thirdAnimation: _thirdAnimation,
+                    fourthAnimation: _fourthAnimation,
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );

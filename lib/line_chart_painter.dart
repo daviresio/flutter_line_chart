@@ -16,6 +16,7 @@ class ChartDataModel {
 
 class LineChartPainter extends CustomPainter {
   final List<ChartDataModel> chartData;
+  final double? cursorPosition;
   final Animation<double> animation;
   final Animation<double> firstAnimation;
   final Animation<double> secondAnimation;
@@ -24,6 +25,7 @@ class LineChartPainter extends CustomPainter {
 
   const LineChartPainter({
     required this.chartData,
+    required this.cursorPosition,
     required this.animation,
     required this.firstAnimation,
     required this.secondAnimation,
@@ -106,17 +108,54 @@ class LineChartPainter extends CustomPainter {
 
     canvas.drawPath(parcialPath, linePaint);
 
+    late Offset cursorOffset;
+
+    if (cursorPosition == null) {
+      cursorOffset = points[higherValueIndex];
+    } else {
+      final straightLinePath = Path()
+        ..moveTo(0, 0)
+        ..lineTo(size.width, 0);
+      final straightLineMetrics =
+          straightLinePath.computeMetrics().toList().first;
+
+      final straightLineDistance = util.remap(
+          cursorPosition!, 0, size.width, 0, straightLineMetrics.length);
+
+      final straightLineContourn =
+          straightLineMetrics.getTangentForOffset(straightLineDistance)!;
+
+      final factor = metric.length / straightLineMetrics.length;
+
+      final pathDistance =
+          util.remap(cursorPosition!, 0, size.width, 0, metric.length);
+
+      final pathContourn = metric.getTangentForOffset(pathDistance)!;
+
+      final subtract =
+          (pathContourn.position.dx - straightLineContourn.position.dx).abs();
+
+      cursorOffset = metric
+          .getTangentForOffset(pathDistance - subtract * factor)!
+          .position;
+    }
+
     _drawCircle(
       canvas: canvas,
       size: size,
-      offset: points[higherValueIndex],
+      offset: cursorOffset,
       animation: thirdAnimation,
       linePaint: linePaint,
     );
 
-    final textStyle = TextStyle(
-      color: Colors.black38,
-      fontSize: 12.0,
+    drawTooltip(
+      canvas: canvas,
+      offset: cursorOffset,
+      text: util
+          .remap(cursorOffset.dy, size.height, 0, 0, higherValue)
+          .toInt()
+          .toString(),
+      animation: fourthAnimation,
     );
 
     points.asMap().keys.forEach((index) {
@@ -124,9 +163,10 @@ class LineChartPainter extends CustomPainter {
 
       final textSpan = TextSpan(
         text: chartData[index].day.toString(),
-        style: index == higherValueIndex
-            ? textStyle.copyWith(fontWeight: FontWeight.bold)
-            : textStyle,
+        style: TextStyle(
+          color: Colors.black38,
+          fontSize: 12.0,
+        ),
       );
 
       final textPainter = TextPainter(
@@ -139,13 +179,6 @@ class LineChartPainter extends CustomPainter {
       textPainter.paint(
           canvas, Offset(offset.dx - textPainter.width / 2, size.height));
     });
-
-    drawTooltip(
-      canvas: canvas,
-      offset: points[higherValueIndex],
-      text: higherValue.toString(),
-      animation: fourthAnimation,
-    );
   }
 
   void _drawGradient({
