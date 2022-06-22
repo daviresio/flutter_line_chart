@@ -1,11 +1,7 @@
 # Flutter line chart
 
-See live demo on <a href="https://flutter-line-chart.daviresio.com" target="_blank">this link</a>
-
-Project using custom paint for draw a line chart, this is a example of content displayed on youtube video and article. you can see then on liks bellow
-
-
-![](screenshot.png)
+Line chart animated and with gestures, made only with canas. Watch the youtube video
+https://www.youtube.com/watch?v=1JcN2q2GZf8&t=1919s
 
 ## contact
 daviresio@gmail.com
